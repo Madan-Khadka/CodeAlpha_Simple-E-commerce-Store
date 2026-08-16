@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Mohan Store{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-header" style="margin: 40px 0;">
+        <h2><i class="fas fa-user-circle"></i> My Profile</h2>
+        <p>Welcome back, <strong>{{ user.username }}</strong>!</p>
+    </div>
+    
+    <div class="profile-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+        <!-- Sidebar -->
+        <div class="profile-sidebar" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <div class="profile-avatar" style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-user-circle" style="font-size: 5rem; color: #667eea;"></i>
+                <h3>{{ user.get_full_name|default:user.username }}</h3>
+                <p style="color: #777;">{{ user.email }}</p>
+            </div>
+            <hr style="margin: 20px 0;">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 10px;">
+                    <a href="{% url 'store:profile' %}" style="color: #667eea; font-weight: 600;">
+                        <i class="fas fa-user"></i> Edit Profile
+                    </a>
+                </li>
+                <li style="margin-bottom: 10px;">
+                    <a href="{% url 'store:order_list' %}" style="color: #555;">
+                        <i class="fas fa-list"></i> My Orders
+                    </a>
+                </li>
+                <li style="margin-bottom: 10px;">
+                    <a href="{% url 'store:view_cart' %}" style="color: #555;">
+                        <i class="fas fa-shopping-cart"></i> My Cart
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'store:user_logout' %}" style="color: #dc3545;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="profile-content" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <h3>Edit Profile</h3>
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                    {{ form.first_name }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                    <i class="fas fa-save"></i> Update Profile
+                </button>
+            </form>
+            
+            <!-- Recent Orders -->
+            <hr style="margin: 30px 0;">
+            <h4><i class="fas fa-history"></i> Recent Orders</h4>
+            {% if orders %}
+                {% for order in orders %}
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <strong>Order #{{ order.order_number }}</strong>
+                                <span style="color: #777; margin-left: 10px;">{{ order.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div>
+                                <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+                                <span style="font-weight: 700; color: #667eea; margin-left: 10px;">₹{{ order.total_amount }}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                <a href="{% url 'store:order_list' %}" style="display: inline-block; margin-top: 15px; color: #667eea;">
+                    View All Orders <i class="fas fa-arrow-right"></i>
+                </a>
+            {% else %}
+                <p style="color: #777;">No orders yet.</p>
+                <a href="{% url 'store:product_list' %}" class="btn btn-primary" style="margin-top: 10px;">
+                    <i class="fas fa-shopping-bag"></i> Start Shopping
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

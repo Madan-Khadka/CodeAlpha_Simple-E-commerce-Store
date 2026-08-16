@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cart - Mohan Store{% endblock %}
+
+{% block content %}
+<div class="cart-container">
+    <h2><i class="fas fa-shopping-cart"></i> Your Cart</h2>
+    
+    {% if cart.items.all %}
+        <div class="cart-items">
+            {% for item in cart.items.all %}
+                <div class="cart-item" id="cart-item-{{ item.id }}">
+                    <div>
+                        {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="cart-item-image">
+                        {% else %}
+                            <div style="width: 100px; height: 100px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #ccc;">
+                                <i class="fas fa-image" style="font-size: 2rem;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="cart-item-details">
+                        <h3><a href="{% url 'store:product_detail' item.product.slug %}">{{ item.product.name }}</a></h3>
+                        <p class="price">₹{{ item.product.price }}</p>
+                        <p style="color: #777; font-size: 0.9rem;">Category: {{ item.product.category.name }}</p>
+                    </div>
+                    <div class="cart-item-actions">
+                        <form method="post" action="{% url 'store:update_cart_item' item.id %}" class="inline-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                            <div class="quantity-control">
+                                <button type="button" class="quantity-btn" data-action="decrease">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="quantity-input" value="{{ item.quantity }}" 
+                                       min="1" max="{{ item.product.stock }}" 
+                                       data-item-id="{{ item.id }}">
+                                <button type="button" class="quantity-btn" data-action="increase">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <form method="post" action="{% url 'store:remove_from_cart' item.id %}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="remove-btn" title="Remove item">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                        
+                        <div style="font-weight: 600; color: #667eea; min-width: 80px; text-align: right;">
+                            ₹{{ item.subtotal }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="cart-summary">
+            <div class="summary-row">
+                <span>Subtotal ({{ total_items }} items)</span>
+                <span>₹{{ subtotal }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span>Free</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span>₹{{ subtotal }}</span>
+            </div>
+            
+            <div class="cart-actions">
+                <a href="{% url 'store:clear_cart' %}" class="btn btn-secondary" style="background: #dc3545; color: white;" 
+                   onclick="return confirm('Are you sure you want to clear your cart?')">
+                    <i class="fas fa-trash"></i> Clear Cart
+                </a>
+                <a href="{% url 'store:product_list' %}" class="btn btn-secondary" style="background: #6c757d; color: white;">
+                    <i class="fas fa-shopping-bag"></i> Continue Shopping
+                </a>
+                <a href="{% url 'store:checkout' %}" class="btn btn-primary" style="padding: 15px 40px;">
+                    <i class="fas fa-credit-card"></i> Proceed to Checkout
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="cart-empty">
+            <i class="fas fa-shopping-cart"></i>
+            <h2>Your Cart is Empty</h2>
+            <p>Looks like you haven't added any items to your cart yet.</p>
+            <a href="{% url 'store:product_list' %}" class="btn btn-primary" style="padding: 15px 40px;">
+                <i class="fas fa-shopping-bag"></i> Start Shopping
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quantity controls
+    document.querySelectorAll('.quantity-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const itemId = this.closest('.cart-item').id.replace('cart-item-', '');
+            const input = this.closest('.quantity-control').querySelector('.quantity-input');
+            let value = parseInt(input.value) || 0;
+            const max = parseInt(input.max) || 999;
+            
+            if (this.dataset.action === 'increase') {
+                if (value < max) {
+                    input.value = value + 1;
+                    updateCartItem(itemId, input.value);
+                } else {
+                    showNotification('Maximum quantity reached', 'warning');
+                }
+            } else if (this.dataset.action === 'decrease') {
+                if (value > 1) {
+                    input.value = value - 1;
+                    updateCartItem(itemId, input.value);
+                } else {
+                    if (confirm('Remove this item from cart?')) {
+                        const form = this.closest('.cart-item-actions').querySelector('form:last-of-type');
+                        if (form) form.submit();
+                    }
+                }
+            }
+        });
+    });
+    
+    // Quantity input change
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            let value = parseInt(this.value) || 1;
+            const max = parseInt(this.max) || 999;
+            
+            if (value < 1) {
+                this.value = 1;
+                value = 1;
+            } else if (value > max) {
+                this.value = max;
+                value = max;
+                showNotification('Only ' + max + ' items available', 'warning');
+            }
+            
+            updateCartItem(itemId, value);
+        });
+    });
+    
+    function updateCartItem(itemId, quantity) {
+        const form = document.querySelector(`#cart-item-${itemId} form`);
+        if (form) {
+            const hiddenInput = form.querySelector('input[name="quantity"]');
+            if (hiddenInput) {
+                hiddenInput.value = quantity;
+            }
+            form.submit();
+        }
+    }
+});
+</script>
+{% endblock %}

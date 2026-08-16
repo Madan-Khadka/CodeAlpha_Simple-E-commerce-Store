@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search Results - Mohan Store{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 40px 20px;">
+    <h2><i class="fas fa-search"></i> Search Results</h2>
+    <p style="color: #777; margin-bottom: 30px;">
+        {% if query %}
+            Showing results for "{{ query }}"
+            <span style="margin-left: 15px; background: #f8f9fa; padding: 5px 15px; border-radius: 20px;">
+                {{ count }} result{{ count|pluralize }}
+            </span>
+        {% else %}
+            Please enter a search term
+        {% endif %}
+    </p>
+    
+    {% if products %}
+        <div class="products-grid">
+            {% for product in products %}
+                <div class="product-card">
+                    <div class="product-image">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                                <span>No Image</span>
+                            </div>
+                        {% endif %}
+                        {% if product.stock <= 0 %}
+                            <div class="product-badge out-of-stock">Out of Stock</div>
+                        {% endif %}
+                    </div>
+                    <div class="product-info">
+                        <h3><a href="{% url 'store:product_detail' product.slug %}">{{ product.name }}</a></h3>
+                        <p class="product-category"><i class="fas fa-tag"></i> {{ product.category.name }}</p>
+                        <p class="product-price">₹{{ product.price }}</p>
+                        <div class="product-actions">
+                            <a href="{% url 'store:product_detail' product.slug %}" class="btn btn-detail">
+                                <i class="fas fa-eye"></i> Details
+                            </a>
+                            {% if product.is_in_stock %}
+                                <a href="{% url 'store:add_to_cart' product.id %}" class="btn btn-cart">
+                                    <i class="fas fa-shopping-cart"></i> Add
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 15px;">
+            <i class="fas fa-search" style="font-size: 4rem; color: #ddd;"></i>
+            <h2 style="margin: 20px 0;">No Products Found</h2>
+            <p style="color: #777;">
+                {% if query %}
+                    No products match "{{ query }}"
+                {% else %}
+                    Please enter a search term to find products
+                {% endif %}
+            </p>
+            <a href="{% url 'store:product_list' %}" class="btn btn-primary" style="margin-top: 20px;">
+                <i class="fas fa-arrow-left"></i> Browse All Products
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Products - Mohan Store{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 40px 20px;">
+    <div class="page-header" style="margin-bottom: 30px;">
+        <h1><i class="fas fa-box"></i> All Products</h1>
+        <p>Browse our collection of quality products</p>
+    </div>
+    
+    <!-- Filters -->
+    <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <form method="get" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+            <!-- Search -->
+            <div style="flex: 1; min-width: 200px;">
+                <input type="search" name="search" class="form-control" placeholder="Search products..." value="{{ search_query }}">
+            </div>
+            
+            <!-- Category Filter -->
+            <div style="min-width: 150px;">
+                <select name="category" class="form-control" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.slug }}" {% if category.slug == category_slug %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Search
+            </button>
+            
+            {% if search_query or category_slug %}
+                <a href="{% url 'store:product_list' %}" class="btn btn-secondary" style="background: #6c757d; color: white;">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Results count -->
+    <div style="margin-bottom: 20px; color: #777;">
+        Found {{ products.paginator.count }} product{{ products.paginator.count|pluralize }}
+    </div>
+    
+    <!-- Products Grid -->
+    {% if products %}
+        <div class="products-grid">
+            {% for product in products %}
+                <div class="product-card">
+                    <div class="product-image">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                                <span>No Image</span>
+                            </div>
+                        {% endif %}
+                        {% if product.stock <= 0 %}
+                            <div class="product-badge out-of-stock">Out of Stock</div>
+                        {% elif product.stock <= 5 %}
+                            <div class="product-badge low-stock">Only {{ product.stock }} left</div>
+                        {% endif %}
+                    </div>
+                    <div class="product-info">
+                        <h3><a href="{% url 'store:product_detail' product.slug %}">{{ product.name }}</a></h3>
+                        <p class="product-category"><i class="fas fa-tag"></i> {{ product.category.name }}</p>
+                        <p class="product-price">₹{{ product.price }}</p>
+                        <div class="product-actions">
+                            <a href="{% url 'store:product_detail' product.slug %}" class="btn btn-detail">
+                                <i class="fas fa-eye"></i> Details
+                            </a>
+                            {% if product.is_in_stock %}
+                                <a href="{% url 'store:add_to_cart' product.id %}" class="btn btn-cart">
+                                    <i class="fas fa-shopping-cart"></i> Add
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if products.has_other_pages %}
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 40px; flex-wrap: wrap;">
+                {% if products.has_previous %}
+                    <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if category_slug %}&category={{ category_slug }}{% endif %}" class="btn btn-secondary" style="background: #6c757d; color: white;">First</a>
+                    <a href="?page={{ products.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_slug %}&category={{ category_slug }}{% endif %}" class="btn btn-secondary" style="background: #6c757d; color: white;">Previous</a>
+                {% endif %}
+                
+                {% for num in products.paginator.page_range %}
+                    {% if products.number == num %}
+                        <span class="btn btn-primary" style="cursor: default;">{{ num }}</span>
+                    {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                        <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_slug %}&category={{ category_slug }}{% endif %}" class="btn btn-secondary" style="background: #6c757d; color: white;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if products.has_next %}
+                    <a href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_slug %}&category={{ category_slug }}{% endif %}" class="btn btn-secondary" style="background: #6c757d; color: white;">Next</a>
+                    <a href="?page={{ products.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_slug %}&category={{ category_slug }}{% endif %}" class="btn btn-secondary" style="background: #6c757d; color: white;">Last</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 15px;">
+            <i class="fas fa-search" style="font-size: 4rem; color: #ddd;"></i>
+            <h2 style="margin: 20px 0;">No Products Found</h2>
+            <p style="color: #777;">
+                {% if search_query %}
+                    No products match "{{ search_query }}"
+                {% else %}
+                    No products available in this category
+                {% endif %}
+            </p>
+            <a href="{% url 'store:product_list' %}" class="btn btn-primary" style="margin-top: 20px;">
+                <i class="fas fa-arrow-left"></i> Browse All Products
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
